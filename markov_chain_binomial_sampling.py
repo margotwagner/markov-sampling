@@ -50,40 +50,45 @@ def two_state_markov_binom_sampling(n_c0,n_c1, p_c0c1,p_c1c0):
 
     return n_c0, n_c1
 
-# Define constants for transition probabilities
-p_c0c1_0 = 0.7           # [=] 1/s
-p_c1c0_0 = 0.9            # [=] 1/s
-lambda_const = 0.01      # [=] 1/mV
-mu = 0.01               # [=] 1/mV
-
 def V_m_t(t_index):
     ''' Applied input voltage'''
     return 30 * np.heaviside((t_array[t_index]-8), 0)
 
-def p_c0c1(t_index):
+def alpha_c0c1(t_index):
     ''' Rate of transition from c0 to c1'''
-    return p_c0c1_0 * np.exp(lambda_const*V_m_t(t_index))
+    return alpha_c0c1_0 * np.exp(lambda_const*V_m_t(t_index))
 
-def p_c1c0(t_index):
+def beta_c1c0(t_index):
     '''# Rate of transition from c1 to c0'''
-    return p_c1c0_0 * np.exp(-mu*V_m_t(t_index))
+    return beta_c1c0_0 * np.exp(-mu*V_m_t(t_index))
 
-#p_c0c1 = 0.3
-#p_c1c0 = 0.1
+def markov_sampling_time_course(time_start,time_stop,time_step, n_c0, n_c1):
+    t_array = np.arange(time_start, time_stop + time_step, time_step)
+    n_c1_frac_array = []
+    n_c1_frac_array = np.append(n_c1_frac_array, n_c1 / sum([n_c0, n_c1]))
 
-n_c0 = 100
-n_c1 = 0
-dt = 0.1
-t_end = 16
-t_array = np.arange(0, t_end+dt, dt)
-n_c1_frac_array = []
-n_c1_frac_array = np.append(n_c1_frac_array,n_c1/sum([n_c0,n_c1]))
+    for t_index in range(1, len(t_array)):
+        p_c0c1 = alpha_c0c1(t_index)*time_step
+        p_c1c0 = beta_c1c0(t_index)*time_step
+        [n_c0, n_c1] = two_state_markov_binom_sampling(n_c0,n_c1,p_c0c1,p_c1c0)
+        n_c1_frac_array = np.append(n_c1_frac_array,n_c1/sum([n_c0,n_c1]))
 
-for t_index in range(1, len(t_array)):
-    [n_c0, n_c1] = two_state_markov_binom_sampling(n_c0, n_c1, 0.7, 0.9)
-    [n_c0, n_c1] = two_state_markov_binom_sampling(n_c0,n_c1,p_c0c1(t_index),p_c1c0(t_index))
-    print(n_c0, n_c1)
-    n_c1_frac_array = np.append(n_c1_frac_array,n_c1/sum([n_c0,n_c1]))
+    return t_array, n_c1_frac_array
+
+# Define constants for transition probabilities
+alpha_c0c1_0 = 0.3          # [=] 1/s
+beta_c1c0_0 = 0.1       # [=] 1/s
+lambda_const = 0.01      # [=] 1/mV
+mu = 0.01               # [=] 1/mV
+
+# Initial conditions
+n_c0_0 = 100
+n_c1_0 = 0
+time_start = 0
+time_step = 1
+time_stop = 16
+
+[t_array, n_c1_frac_array] = markov_sampling_time_course(time_start, time_stop, time_step, n_c0_0, n_c1_0)
 
 plt.figure()
 plt.plot(t_array, n_c1_frac_array, label = 'C1')
