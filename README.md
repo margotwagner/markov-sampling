@@ -1,1 +1,3 @@
-# markov_sampling
+# markov-sampling
+
+Code for Markov sampling schemes
